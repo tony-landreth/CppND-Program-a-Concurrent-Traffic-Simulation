@@ -86,7 +86,6 @@ void TrafficLight::cycleThroughPhases()
     std::uniform_int_distribution<> distr(4, 6); // define the range
     double cycleDuration = distr(eng)*1000; // duration of a single simulation cycle in ms
     std::chrono::time_point<std::chrono::system_clock> lastUpdate;
-    enum TrafficLightPhase currentPhase;
 
     while(true) {
       // Wait for 1 ms to reduce CPU load
@@ -98,15 +97,15 @@ void TrafficLight::cycleThroughPhases()
       // Toggle the traffic light on schedule
       if(timeSinceLastUpdate >= cycleDuration) {
         if(_currentPhase == TrafficLightPhase::red) {
-          currentPhase = TrafficLightPhase::green;
+          _currentPhase = TrafficLightPhase::green;
         } else {
-          currentPhase = TrafficLightPhase::red;
+          _currentPhase = TrafficLightPhase::red;
         }
       }
       // Send an update to the message queue, see FP.5a
 			std::cout << "Spawning threads..." << std::endl;
-			std::vector<std::future<void>> futures;
-			futures.emplace_back(std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send, _queue, std::move(currentPhase)));
+			std::vector<std::future<void> > futures;
+			futures.emplace_back(std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send, _queue, std::move(_currentPhase)));
 
       // reset stop watch for next cycle
       lastUpdate = std::chrono::system_clock::now();
