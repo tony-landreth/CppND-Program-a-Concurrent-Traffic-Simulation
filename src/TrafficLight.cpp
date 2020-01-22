@@ -1,10 +1,10 @@
 #include <iostream>
 #include <random>
+#include <future>
 #include "TrafficLight.h"
 
 /* Implementation of class "MessageQueue" */
 
-/* 
 template <typename T>
 T MessageQueue<T>::receive()
 {
@@ -18,12 +18,22 @@ void MessageQueue<T>::send(T &&msg)
 {
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
     // as well as _condition.notify_one() to add a new message to the queue and afterwards send a notification.
+    // perform queue modification under the lock
+
+    // simulate some work
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // perform vector modication under the lock
+    std::lock_guard<std::mutex> uLock(_mutex);
+
+    // add vector to queue
+    std::cout << "  Message " << msg << " has been sent to the queue" << std::endl;
+    _queue.push_back(std::move(msg));
+    _cond.notify_one(); // notifiy client after pushing new TrafficLightPhase into vector
 }
-*/
 
 /* Implementation of class "TrafficLight" */
 
-/* 
 TrafficLight::TrafficLight()
 {
     _currentPhase = TrafficLightPhase::red;
@@ -40,7 +50,6 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 {
     return _currentPhase;
 }
-*/
 
 void TrafficLight::simulate()
 {
@@ -65,6 +74,7 @@ void TrafficLight::cycleThroughPhases()
     std::uniform_int_distribution<> distr(4, 6); // define the range
     double cycleDuration = distr(eng)*1000; // duration of a single simulation cycle in ms
     std::chrono::time_point<std::chrono::system_clock> lastUpdate;
+    enum TrafficLightPhase currentPhase;
 
     while(true) {
       // Wait for 1 ms to reduce CPU load
@@ -76,14 +86,15 @@ void TrafficLight::cycleThroughPhases()
       // Toggle the traffic light on schedule
       if(timeSinceLastUpdate >= cycleDuration) {
         if(_currentPhase == TrafficLightPhase::red) {
-          _currentPhase = TrafficLightPhase::green;
+          currentPhase = TrafficLightPhase::green;
         } else {
-          _currentPhase = TrafficLightPhase::red;
+          currentPhase = TrafficLightPhase::red;
         }
       }
-      // Send an update method to message queue, see FP.5a
-
-
+      // Send an update to the message queue, see FP.5a
+			std::cout << "Spawning threads..." << std::endl;
+			std::vector<std::future<void>> futures;
+			futures.emplace_back(std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send, _queue, std::move(currentPhase)));
 
       // reset stop watch for next cycle
       lastUpdate = std::chrono::system_clock::now();
