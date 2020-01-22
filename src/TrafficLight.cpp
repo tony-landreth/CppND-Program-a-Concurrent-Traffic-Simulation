@@ -40,11 +40,14 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 {
     return _currentPhase;
 }
+*/
 
 void TrafficLight::simulate()
 {
     // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called. To do this, use the thread queue in the base class. 
+    threads.emplace_back(std::thread(&TrafficLight::cycleThroughPhases, this));
 }
+
 
 // virtual function which is executed in a thread
 void TrafficLight::cycleThroughPhases()
@@ -53,6 +56,39 @@ void TrafficLight::cycleThroughPhases()
     // and toggles the current phase of the traffic light between red and green and sends an update method 
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
-}
 
-*/
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    while(true) {
+      // Measure time for a function, see: https://stackoverflow.com/questions/22387586/measuring-execution-time-of-a-function-in-c
+      t2 = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+
+      // Select a random value between 4 and 6 seconds
+      // see: https://stackoverflow.com/questions/7560114/random-number-c-in-some-range
+      std::random_device rd; // obtain a random number from hardware
+      std::mt19937 eng(rd()); // seed the generator
+      std::uniform_int_distribution<> distr(4, 6); // define the range
+      int threshold = distr(eng);
+      threshold = threshold*1000;
+
+      // Toggle the traffic light on schedule
+      if(threshold >= duration) {
+        if(_currentPhase == TrafficLightPhase::red) {
+          _currentPhase = TrafficLightPhase::green;
+        } else {
+          _currentPhase = TrafficLightPhase::red;
+        }
+      }
+      // Send an update method to message queue, see FP.5a
+
+
+
+      // Wait for 1 ms to reduce CPU load
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+      // prepare to measure time for another cycle
+      t1 = std::chrono::high_resolution_clock::now();
+    }
+}
