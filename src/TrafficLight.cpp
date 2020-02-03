@@ -9,7 +9,7 @@ template <typename T> T MessageQueue<T>::receive() {
   std::unique_lock<std::mutex> uLock(_mutex);
   _condition.wait(uLock, [this] {
     return !_queue.empty();
-  }); // pass unique lock to condition variable
+  });
   T msg = std::move(_queue.back());
   _queue.pop_back();
 
@@ -19,8 +19,7 @@ template <typename T> T MessageQueue<T>::receive() {
 template <typename T> void MessageQueue<T>::send(T &&msg) {
   std::lock_guard<std::mutex> uLock(_mutex);
   _queue.push_back(std::move(msg));
-  _condition.notify_one(); // notifiy client after pushing new TrafficLightPhase
-                           // into vector
+  _condition.notify_one();
 }
 
 /* Implementation of class "TrafficLight" */
@@ -64,7 +63,7 @@ void TrafficLight::cycleThroughPhases() {
             std::chrono::system_clock::now() - lastUpdate)
             .count();
 
-    // Toggle the traffic light on schedule
+    // Alternate lights
     if (timeSinceLastUpdate >= cycleDuration) {
       if (_currentPhase == TrafficLightPhase::red) {
         _currentPhase = TrafficLightPhase::green;
@@ -76,7 +75,6 @@ void TrafficLight::cycleThroughPhases() {
                      &_queue, std::move(_currentPhase));
       ftrPhase.wait();
 
-      // reset stop watch for next cycle
       lastUpdate = std::chrono::system_clock::now();
     }
   }

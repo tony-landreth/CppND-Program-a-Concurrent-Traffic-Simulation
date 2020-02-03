@@ -9,8 +9,6 @@
 // forward declarations to avoid include cycle
 class Vehicle;
 
-// private members.
-
 template <class T> class MessageQueue {
 public:
   T receive();
